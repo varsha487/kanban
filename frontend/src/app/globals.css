@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "react-datepicker/dist/react-datepicker.css";
+
+body {
+  background-color: #FFF8EC;
+  color: #546B41;
+  font-size: 22px;
+}
+
+
