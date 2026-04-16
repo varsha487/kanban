@@ -64,7 +64,7 @@ const [invitedUsers, setInvitedUsers] = useState<any[]>([])
   onChange={(e) => setWorkspaceName(e.target.value)}
 />
        
-<div className="border-t my-3"></div>
+<div className="my-3"></div>
         <h3 className="font-semibold mb-2">Invite People</h3>
 
 <input
