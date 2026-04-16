@@ -4,7 +4,7 @@ export const callAPI = async (
   token: string,
   body?: any
 ) => {
-  const res = await fetch(`http://localhost:5000${endpoint}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}:5000${endpoint}`, {
     method,
     headers: {
       "Content-Type": "application/json",
