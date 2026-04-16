@@ -26,12 +26,7 @@ export default function WorkspacePanel({
         ))}
       </div>
 
-      <button
-        onClick={onCreate}
-        className="mt-4 bg-[#546B41] text-white py-2 rounded"
-      >
-        + New Workspace
-      </button>
+   
     </div>
   )
 }

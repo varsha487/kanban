@@ -30,7 +30,7 @@ const [invitedUsers, setInvitedUsers] = useState<any[]>([])
     setSearching(true)
 
     const res = await fetch(
-  `http://localhost:5000/users/search?q=${search}`,
+  `${process.env.NEXT_PUBLIC_API_URL}:5000/users/search?q=${search}`,
   {
     headers: {
       Authorization: `Bearer ${session.access_token}`,
