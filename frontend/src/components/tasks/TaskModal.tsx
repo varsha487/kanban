@@ -120,7 +120,7 @@ export default function TaskModal({
         <div className="mb-3">
           <DatePicker
             selected={dueDate}
-            onChange={(date) => setDueDate(date)}
+            onChange={(date: Date | null) => setDueDate(date)}
             className="w-full border p-2 rounded"
             placeholderText="Due date"
           />
