@@ -248,6 +248,8 @@ useEffect(() => {
 
       setWorkspaces((prev) => [...prev, newWs[0]])
       setActiveWorkspace(newWs[0])
+
+      return newWs;
     }}
     session={session}
   />
