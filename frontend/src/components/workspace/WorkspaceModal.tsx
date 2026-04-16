@@ -53,7 +53,7 @@ const [invitedUsers, setInvitedUsers] = useState<any[]>([])
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl w-[420px] shadow-lg">
         
-        {/* Title */}
+       
         <h2 className="text-xl font-bold mb-4">
           Create Workspace
         </h2>
@@ -63,9 +63,6 @@ const [invitedUsers, setInvitedUsers] = useState<any[]>([])
   value={workspaceName}
   onChange={(e) => setWorkspaceName(e.target.value)}
 />
-
-<div className="border-t my-3"></div>
-
        
 <div className="border-t my-3"></div>
         <h3 className="font-semibold mb-2">Invite People</h3>
