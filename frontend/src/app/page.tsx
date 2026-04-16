@@ -5,6 +5,11 @@ import { supabase } from "@/lib/supabaseClient"
 import { callAPI } from "@/lib/api"
 import KanbanBoard from "@/components/KanbanBoard"
 import DatePicker from "react-datepicker"
+import WorkspaceModal from "@/components/workspace/WorkspaceModal"
+import WorkspacePanel from "@/components/workspace/WorkspacePanel"
+import ProfileSetupModal from "@/components/profile/ProfileSetupModal"
+import TaskModal from "@/components/tasks/TaskModal"
+import TaskCommentsModal from "@/components/tasks/TaskCommentsModal"
 
 export default function Home() {
   const [session, setSession] = useState<any>(null)
@@ -17,6 +22,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [editingTask, setEditingTask] = useState<any>(null)
   const [editMode, setEditMode] = useState(false)
+  const [workspaces, setWorkspaces] = useState<any[]>([])
+  const [activeWorkspace, setActiveWorkspace] = useState<any>(null)
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false)
+  const [members, setMembers] = useState<any[]>([])
+  const [assignedUsers, setAssignedUsers] = useState<string[]>([])
+  const [profile, setProfile] = useState<any>(null)
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [commentMode, setCommentMode] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<any>(null)
 
   const isEditing = !!editingTask
   const handleEdit = (task: any) => {
@@ -26,11 +40,24 @@ export default function Home() {
   setPriority(task.priority || "normal")
   setDueDate(task.due_date ? new Date(task.due_date) : null)
   setShowModal(true)
+  setAssignedUsers(task.assignees || [])
 }
 
+const fetchTasks = async () => {
+  if (!activeWorkspace || !session) return
+
+  const fetchedTasks = await callAPI(
+    `/tasks?workspace_id=${activeWorkspace.id}`,
+    "GET",
+    session.access_token
+  )
+
+  setTasks(fetchedTasks)
+}
 
   useEffect(() => {
   const init = async () => {
+    
     const { data } = await supabase.auth.getSession()
 
     let currentSession = data.session
@@ -41,37 +68,142 @@ export default function Home() {
     }
 
     setSession(currentSession)
-
     if (currentSession) {
-      await callAPI("/init-user", "POST", currentSession.access_token)
+    const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentSession.user.id)
+        .single()
 
-      const fetchedTasks = await callAPI(
-        "/tasks",
+      if (!profileData) {
+        setShowProfileModal(true)
+        return 
+      }
+
+      setProfile(profileData)
+    }
+
+    // only continue if we have a session (either existing or newly created)
+    if (currentSession) {
+      // initialize user in DB (if not already) and fetch workspaces + tasks
+      await callAPI("/init-user", "POST", currentSession.access_token)
+      
+      // fetch workspaces + tasks
+      const ws = await callAPI(
+        "/workspaces",
         "GET",
         currentSession.access_token
       )
-
-      console.log("Fetched tasks:", fetchedTasks)
-
-      setTasks(fetchedTasks)
+      setWorkspaces(ws)
+      setActiveWorkspace(ws[0])
     }
   }
   init()
 }, [])
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Kanban App</h1>
+useEffect(() => {
+  fetchTasks()
+}, [activeWorkspace, session])
 
-      <KanbanBoard
-  initialTasks={tasks}
+useEffect(() => {
+  if (!activeWorkspace || !session) return
+
+  const fetchMembers = async () => {
+    const res = await callAPI(
+      `/workspace-members?workspace_id=${activeWorkspace.id}`,
+      "GET",
+      session.access_token
+    )
+    setMembers(res)
+  }
+
+  fetchMembers()
+}, [activeWorkspace, session])
+
+useEffect(() => {
+  const channel = supabase
+    .channel("tasks")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "tasks",
+      },
+      () => {
+        fetchTasks()
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [])
+
+  return (
+    <div className="mb-4">
+    <div className="flex items-center justify-between mr-3">
+
+<div className="flex flex-col ml-4">
+  {/* Row 1: Title */}
+  <h1 className="text-2xl font-bold">Kanban App</h1>
+
+  {/* Row 2: Profile */}
+  {profile && (
+    <div className="flex items-center gap-2 mt-1">
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: profile.color }}
+      >
+        <img
+          src={`/avatars/${profile.avatar}`}
+          className="w-7 h-7"
+        />
+      </div>
+
+      <span className="text-sm font-medium">
+        {profile.username}
+      </span>
+    </div>
+  )}
+</div>
+
+  {/* RIGHT — WORKSPACES */}
+  <div className="flex items-center gap-2">
+    {workspaces.map((ws) => {
+      const active = activeWorkspace?.id === ws.id
+
+      return (
+        <button
+          key={ws.id}
+          onClick={() => setActiveWorkspace(ws)}
+          className={`px-3 py-1 rounded-full text-sm border transition ${
+            active
+              ? "bg-[#546B41] text-white"
+              : "bg-white hover:bg-gray-100"
+          }`}
+        >
+          {ws.name}
+        </button>
+      )
+    })}
+  </div>
+</div>
+
+
+      <KanbanBoard initialTasks={tasks}
   onEdit={handleEdit}
   editMode={editMode}
+  members = {members}
+  commentMode={commentMode}
+  onSelectTask={setSelectedTask}
 />
+
    <div>   
       <button
   onClick={() => setShowModal(true)}
-  className="bg-[#546B41] text-white px-4 py-2 rounded mb-4"
+  className="bg-[#546B41] text-white px-4 py-2 rounded mb-4 ml-4 hover:bg-[#445634]"
 >
   + Add Task
 </button>
@@ -80,134 +212,98 @@ export default function Home() {
     onClick={() => setEditMode((v) => !v)}
     className={` ml-4 px-4 py-2 rounded border ${
       editMode ? "bg-[#DCCCAC]" : "bg-white"
-    }`}
+    } hover:bg-[#DCCCAC]` }
   >
-    {editMode ? "Exit Edit Mode" : "Editing Mode"}
+    {isEditing ? "Exit Edit Mode" : "Editing Mode"}
   </button>
 </div>
 
-
-{showModal && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div className="bg-white p-6 rounded w-[400px]">
-      
-      <h2 className="text-xl font-bold mb-4">{editMode ? "Edit Task" : "Create Task"}</h2>
-
-      <input
-        className="w-full border p-2 mb-2"
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-
-      <textarea
-        className="w-full border p-2 mb-2"
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      />
-<div className="mb-2">
-  <label className="block text-sm font-medium mb-1">
-    Priority
-  </label>
-
-  <select
-    className="w-full border p-2"
-    value={priority}
-    onChange={(e) => setPriority(e.target.value)}
-  >
-    <option value="low">Low</option>
-    <option value="normal">Normal</option>
-    <option value="high">High</option>
-  </select>
-</div>
-
-<div className="mb-2">
-  <label className="block text-sm font-medium mb-1">
-    Due Date
-  </label>
-
-  <DatePicker
-    selected={dueDate}
-    onChange={(date) => setDueDate(date)}
-    className="w-full border p-2 rounded"
-    placeholderText="mm/dd/yyyy"
+{selectedTask && (
+  <TaskCommentsModal
+    task={selectedTask}
+    onClose={() => setSelectedTask(null)}
+    session={session}
   />
-</div>
-      
+)}
 
-      <div className="flex justify-end gap-2">
-        <button onClick={() => setShowModal(false)}>
-          Cancel
-        </button>
-
-<button
-  disabled={loading}
-  className={`px-3 py-1 rounded text-white flex items-center justify-center gap-2 ${
-    loading ? "bg-gray-400" : "bg-[#99AD7A]"
-  }`}
-onClick={async () => {
-  if (!session || loading) return
-  setLoading(true)
-
-  try {
-    if (isEditing) {
-      const updated = await callAPI(
-        "/tasks",
-        "PUT",
-        session.access_token,
-        {
-          id: editingTask.id,
-          title,
-          description,
-          priority,
-          due_date: dueDate ? dueDate.toISOString() : null,
-        }
-      )
-
-      setTasks((prev) =>
-        prev.map((t) => (t.id === updated[0].id ? updated[0] : t))
-      )
-    } else {
-      const newTask = await callAPI(
-        "/tasks",
+{showWorkspaceModal && (
+  <WorkspaceModal
+    onClose={() => setShowWorkspaceModal(false)}
+    onCreate={async (data) => {
+      const newWs = await callAPI(
+        "/workspaces",
         "POST",
         session.access_token,
-        {
-          title,
-          description,
-          status: "todo",
-          priority,
-          due_date: dueDate ? dueDate.toISOString() : null,
-        }
+        data
       )
 
-      setTasks((prev) => [...prev, newTask[0]])
-    }
-
-    // reset
-    setTitle("")
-    setDescription("")
-    setPriority("normal")
-    setDueDate(null)
-    setEditingTask(null)
-    setShowModal(false)
-
-  } finally {
-    setLoading(false)
-  }
-}}
->
-  {loading ? (
-    <span className="animate-pulse">Saving...</span>
-  ) : (
-   editingTask ? "Update" : "Create"
-  )}
-</button>
-      </div>
-    </div>
-  </div>
+      setWorkspaces((prev) => [...prev, newWs[0]])
+      setActiveWorkspace(newWs[0])
+    }}
+    session={session}
+  />
 )}
+
+{showProfileModal && (
+  <ProfileSetupModal
+    onCreate={async ({ username, avatar, color }) => {
+      if (!session) return
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .insert({
+          id: session.user.id,
+          username,
+          avatar,
+          color,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        alert("Username may already exist")
+        return
+      }
+
+      setProfile(data)
+      setShowProfileModal(false)
+    }}
+  />
+)}
+
+<TaskModal
+  open={showModal}
+  onClose={() => {
+    setShowModal(false)
+    setEditingTask(null)
+  }}
+  task={editingTask}
+  members={members}
+  onSave={async ({ task, assignees }) => {
+    if (task.id) {
+      const updated = await callAPI("/tasks", "PUT", session.access_token, task)
+
+      await fetchTasks()
+      await callAPI("/tasks/assign", "POST", session.access_token, {
+        task_id: task.id,
+        user_ids: assignees,
+      })
+    } else {
+      const created = await callAPI("/tasks", "POST", session.access_token, {
+        ...task,
+        status: "todo",
+        workspace_id: activeWorkspace?.id,
+      })
+
+      await fetchTasks()
+
+      await callAPI("/tasks/assign", "POST", session.access_token, {
+        task_id: created[0].id,
+        user_ids: assignees,
+      })
+    }
+  }}
+/>
     </div>
   )
 }
