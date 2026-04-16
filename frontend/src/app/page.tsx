@@ -219,7 +219,7 @@ useEffect(() => {
 
          <button
     onClick={() => setShowWorkspaceModal(true)}
-    className="bg-[#99AD7A] text-white px-4 py-2 rounded hover:bg-[#7f9563]"
+    className="bg-[#99AD7A] ml-4 text-white px-4 py-2 rounded hover:bg-[#7f9563]"
   >
     + Add Workspace
   </button>
