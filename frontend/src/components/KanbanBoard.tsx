@@ -183,7 +183,7 @@ function Column({ column, tasks, onEdit, onDelete, editMode, deletingIds, member
   return (
 <div
   ref={setNodeRef}
-  className="bg-[#FFF8EC] p-3 rounded-xl h-[75vh] overflow-y-auto border-3 border-[#DCCCAC] shadow-sm"
+  className="bg-[#FFF8EC] p-3 rounded-xl border-3 border-[#DCCCAC] shadow-sm"
 >
       <h2 className="font-bold mb-3 text-[#546B41] border-b border-[#DCCCAC] pb-2">
         {column.title}
