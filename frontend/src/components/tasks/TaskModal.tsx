@@ -5,7 +5,7 @@ import DatePicker from "react-datepicker"
 
 type Member = {
   user_id: string
-  display_name: string
+  username: string
   avatar: string
   color: string
 }
