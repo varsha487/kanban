@@ -208,6 +208,13 @@ useEffect(() => {
   + Add Task
 </button>
 
+      <button
+    onClick={() => setShowWorkspaceModal(true)}
+    className="bg-[#546B41] ml-4 text-white px-4 py-2 rounded hover:bg-[#445634]"
+  >
+    + Add Workspace
+  </button>
+
   <button
     onClick={() => setEditMode((v) => !v)}
     className={` ml-4 px-4 py-2 rounded border ${
@@ -217,12 +224,7 @@ useEffect(() => {
     {isEditing ? "Exit Edit Mode" : "Editing Mode"}
   </button>
 
-         <button
-    onClick={() => setShowWorkspaceModal(true)}
-    className="bg-[#99AD7A] ml-4 text-white px-4 py-2 rounded hover:bg-[#7f9563]"
-  >
-    + Add Workspace
-  </button>
+        
 </div>
 
 {selectedTask && (
