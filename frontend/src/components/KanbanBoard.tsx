@@ -48,11 +48,11 @@ const { attributes, listeners, setNodeRef, transform } = useDraggable({
   disabled: editMode || commentMode,
 })
 
-  const style = transform
-    ? {
-        transform: `translate(${transform.x}px, ${transform.y}px)`,
-      }
-    : undefined
+  const style={
+  transform: transform
+    ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+    : undefined,
+}
 
     const border =
   task.priority === "high"
@@ -255,7 +255,7 @@ console.log("Drag update data:", data)
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-4 gap-4 p-4">
+      <div className="grid grid-cols-4 gap-4 p-4 overflow-x-hidden">
         {COLUMNS.map((col) => (
           <Column
             key={col.id}
